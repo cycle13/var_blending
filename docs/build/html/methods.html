@@ -1,0 +1,155 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="English">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>methods &#8212; var_blending_docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/my_theme.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="License" href="license.html" />
+    <link rel="prev" title="Welcome to VAR_BLENDING documentation!" href="index.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to VAR_BLENDING documentation!"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">var_blending_docs 0.0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="methods">
+<h1>methods<a class="headerlink" href="#methods" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="cost-function">
+<h2>Cost function<a class="headerlink" href="#cost-function" title="Permalink to this headline">¶</a></h2>
+<p>At each level, the Fast Fourier Transform (FFT) is carrid out before the minimization of
+the following cost function (here we take the blending of GFS and WRF as an example):</p>
+<p><span class="math notranslate nohighlight">\(\mathbf{J} = \mathbf{J_{GFS}} + \mathbf{J_{WRF}} + \mathbf{J_{P}}\)</span></p>
+<p>Where <span class="math notranslate nohighlight">\(\mathbf{J_{GFS}}\)</span> and <span class="math notranslate nohighlight">\(\mathbf{J_{WRF}}\)</span> represent the GFS and WRF term, respectively, and <span class="math notranslate nohighlight">\(J_{P}\)</span>
+is the power constrain term.</p>
+<div class="section" id="gfs-and-wrf-terms">
+<h3>GFS and WRF terms<a class="headerlink" href="#gfs-and-wrf-terms" title="Permalink to this headline">¶</a></h3>
+<p>The GFS and WRF terms determine the ratio of contributions from GFS and WRF, we have:</p>
+<ul class="simple">
+<li><span class="math notranslate nohighlight">\(\mathbf{J_{GFS}} = (x-x_{GFS})\mathbf{B_{GFS}}^{-1}(x-x_{GFS})^{T}\)</span></li>
+<li><span class="math notranslate nohighlight">\(\mathbf{J_{WRF}} = (x-x_{WRF})\mathbf{B_{WRF}}^{-1}(x-x_{WRF})^{T}\)</span></li>
+</ul>
+<p>Where <span class="math notranslate nohighlight">\(x\)</span>, <span class="math notranslate nohighlight">\(x_{GFS}\)</span> and <span class="math notranslate nohighlight">\(x_{WRF}\)</span> represent the fields of the blended analysis,
+GFS and WRF forecasts, respectively, in the spectrum space. <span class="math notranslate nohighlight">\(\mathbf{B_{GFS}}\)</span> and <span class="math notranslate nohighlight">\(\mathbf{B_{WRF}}\)</span>
+are GFS and WRF errors, which are estimated from:</p>
+<ul class="simple">
+<li><span class="math notranslate nohighlight">\(\mathbf{B_{GFS}} = \sum_{i=0}^{N}\frac{\sqrt{[f(x_{GFS})_{i} - f(x_{GA})_{i}]^{2}}}{N}\)</span></li>
+<li><span class="math notranslate nohighlight">\(\mathbf{B_{WRF}} = \sum_{i=0}^{N}\frac{\sqrt{[f(x_{WRF})_{i} - f(x_{GA})_{i}]^{2}}}{N}\)</span></li>
+</ul>
+<p>Where <span class="math notranslate nohighlight">\(f\)</span> represents the inverse FFT (iFFT), <span class="math notranslate nohighlight">\(x_{GA}\)</span> is the global analysis and <span class="math notranslate nohighlight">\(N\)</span> represents
+the total number of cases used for estimating the model errors. The error matrix is calculated for the range between
+the wavenumber 0 and wavenumber <span class="math notranslate nohighlight">\(v\)</span>, which is determined by the distance between two radiosondes.</p>
+</div>
+<div class="section" id="power-constrain-term">
+<h3>Power constrain term<a class="headerlink" href="#power-constrain-term" title="Permalink to this headline">¶</a></h3>
+<p>Analysis power constrain term is used to make sure that the total analyzed power to be consistent with the power of
+WRF forecasts:</p>
+<ul class="simple">
+<li><span class="math notranslate nohighlight">\(\mathbf{J_{P}} = [P(x)-P(x_{WRF})]\mathbf{B_{P}}^{-1}[P(x)-P(x_{WRF})]^{T}\)</span></li>
+</ul>
+<p>Where <span class="math notranslate nohighlight">\(P\)</span> represents the Welch's power calculated by the analysis and WRF. <span class="math notranslate nohighlight">\(\mathbf{B_{P}}\)</span> is the
+predefined error for the power, which can be considered as the most tolerable power difference between the analysis
+and WRF.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">methods</a><ul>
+<li><a class="reference internal" href="#cost-function">Cost function</a><ul>
+<li><a class="reference internal" href="#gfs-and-wrf-terms">GFS and WRF terms</a></li>
+<li><a class="reference internal" href="#power-constrain-term">Power constrain term</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to VAR_BLENDING documentation!</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="license.html"
+                        title="next chapter">License</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/methods.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to VAR_BLENDING documentation!"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">var_blending_docs 0.0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, sijin.zhang.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.3.
+    </div>
+  </body>
+</html>

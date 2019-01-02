@@ -1,0 +1,681 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="English">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Step 1 Preparing model errors &#8212; var_blending_docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/my_theme.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="License" href="license.html" />
+    <link rel="prev" title="methods" href="methods.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="methods.html" title="methods"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">var_blending_docs 0.0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="step-1-preparing-model-errors">
+<h1>Step 1 Preparing model errors<a class="headerlink" href="#step-1-preparing-model-errors" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="step-1-1-download-or-prepare-the-model-inputs">
+<h2>STEP 1.1 Download (or prepare) the model inputs<a class="headerlink" href="#step-1-1-download-or-prepare-the-model-inputs" title="Permalink to this headline">¶</a></h2>
+<p>First we need to download (or copy over) the model inputs under certain formats in
+the working directory. Note that the global model data (fcst + analysis) must
+be processed with WPS so it has the consistent projection with the LAM model data</p>
+<div class="section" id="if-download-model-inputs-from-aws-s3">
+<h3>1.1.1 if download model inputs from AWS S3<a class="headerlink" href="#if-download-model-inputs-from-aws-s3" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="download-global-model-forecasts">
+<h4>download global model forecasts<a class="headerlink" href="#download-global-model-forecasts" title="Permalink to this headline">¶</a></h4>
+<p>global model forecasts are downloaded from <code class="docutils literal notranslate"><span class="pre">global_fcst_on_s3</span></code> in AWS S3,
+the filename must be in the format of <code class="docutils literal notranslate"><span class="pre">global_a[YYYMMDDHH]_v[YYYYMMDDHH].nc</span></code>,
+where <code class="docutils literal notranslate"><span class="pre">YYYYMMDDHH</span></code> represent either the analysis time or valid time.
+Making sure that the file structure in AWS S3 is similar as below:</p>
+<a class="reference internal image-reference" href="_images/blending_global.png"><img alt="_images/blending_global.png" src="_images/blending_global.png" style="width: 600px;" /></a>
+<p>For example, in the above screenshot, the filename <code class="docutils literal notranslate"><span class="pre">global_a2018100112_v2018100200.nc</span></code>
+means a 12h global forecasts initialized at 1200 UTC 01 Oct 2018
+(valid at 0000 UTC 02 Oct 2018)</p>
+<p>The following codes are used to determine the location of global forecasts in S3:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cur_hist_glb_fcst_path_on_s3</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+    <span class="n">global_fcst_on_s3</span><span class="p">,</span> <span class="s1">&#39;global_a</span><span class="si">{}</span><span class="s1">_v</span><span class="si">{}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cur_ana_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H&#39;</span><span class="p">),</span>
+                               <span class="n">cur_val_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H&#39;</span><span class="p">)))</span>
+</pre></div>
+</div>
+<p>The local destination of the global forecasts is <code class="docutils literal notranslate"><span class="pre">cur_hist_dir</span></code>,
+and the filename must follow the format of <code class="docutils literal notranslate"><span class="pre">glb_l[forecast_length]_d0[domain_id].nc</span></code>,
+where both <code class="docutils literal notranslate"><span class="pre">forecast_length</span></code> and <code class="docutils literal notranslate"><span class="pre">domain_id</span></code> are represented by numbers
+(e.g., glb_l12_d02.nc). The following codes are used to determine the
+location of global forecasts in a local directory:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cur_hist_glb_fcst_path_on_local</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+    <span class="n">cur_hist_dir</span><span class="p">,</span> <span class="s1">&#39;glb_l</span><span class="si">{}</span><span class="s1">_d0</span><span class="si">{}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fcst_length</span><span class="p">,</span> <span class="n">domain_id</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="download-global-model-analysis">
+<h4>download global model analysis<a class="headerlink" href="#download-global-model-analysis" title="Permalink to this headline">¶</a></h4>
+<p>Downloading global model analysis is similar to the process of
+downloading global forecasts. The difference between global forecasts
+and analysis is that, in a global analysis,
+<code class="docutils literal notranslate"><span class="pre">global_a[YYYMMDDHH]_v[YYYYMMDDHH].nc</span></code> has the same analysis
+and valid times. Moreover, the local filename for the global analysis
+has a fixed <code class="docutils literal notranslate"><span class="pre">forecast_length</span></code> as 0. For example, <code class="docutils literal notranslate"><span class="pre">glb_l0_d0[domain_id].nc</span></code></p>
+</div>
+<div class="section" id="download-lam-forecasts">
+<h4>download LAM forecasts<a class="headerlink" href="#download-lam-forecasts" title="Permalink to this headline">¶</a></h4>
+<p>LAM forecasts sit directly in the operational archive directory,
+and the filename follows regulation of the direct WRF output,
+e.g., <code class="docutils literal notranslate"><span class="pre">wrf_hourly_[model_name]_d0[domain_id]_{YYYY-MM-DD_HH:MM:SS}</span></code>
+where the date string at the end indicates the model valid time.
+The local filename is similar to the ones of global models, which is
+<code class="docutils literal notranslate"><span class="pre">lam_l[forecast_length]_d0[domain_id].nc</span></code> (e.g., lam_l12_d02.nc).
+The codes determine the source (on S3) and destination (local) are defined as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cur_hist_lam_fcst_path_on_s3</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+    <span class="n">lam_fcst_on_s3</span><span class="p">,</span> <span class="n">lam_model_name</span><span class="p">,</span>
+    <span class="n">cur_ana_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%y&#39;</span><span class="p">),</span>
+    <span class="n">cur_ana_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%m&#39;</span><span class="p">),</span> <span class="n">cur_ana_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">),</span>
+    <span class="n">cur_ana_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%H&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;wrf_hourly_</span><span class="si">{}</span><span class="s1">_d0</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+         <span class="n">lam_model_name</span><span class="p">,</span>
+         <span class="n">domain_id</span><span class="p">,</span>
+         <span class="n">cur_val_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">_%H:00:00&#39;</span><span class="p">)))</span>
+<span class="n">cur_hist_lam_fcst_path_on_local</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+    <span class="n">cur_hist_dir</span><span class="p">,</span> <span class="s1">&#39;lam_l</span><span class="si">{}</span><span class="s1">_d0</span><span class="si">{}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fcst_length</span><span class="p">,</span> <span class="n">domain_id</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="data-structure-under-the-local-working-directory">
+<h4>data structure under the local working directory<a class="headerlink" href="#data-structure-under-the-local-working-directory" title="Permalink to this headline">¶</a></h4>
+<a class="reference internal image-reference" href="_images/data_structure.png"><img alt="_images/data_structure.png" src="_images/data_structure.png" style="width: 650px;" /></a>
+</div>
+</div>
+<div class="section" id="if-copy-model-inputs-from-somewhere-else">
+<h3>1.1.2 if copy model inputs from somewhere else<a class="headerlink" href="#if-copy-model-inputs-from-somewhere-else" title="Permalink to this headline">¶</a></h3>
+<p>the local file structure must be shown as above,
+which has the valid time ('YYYYMMDDHH') as the upper directory name,
+and under this directory there are model data which are named as:</p>
+<ul class="simple">
+<li>global model: <code class="docutils literal notranslate"><span class="pre">glb_l[lead_hour]_d0[domain_id].nc</span></code></li>
+<li>LAM model: <code class="docutils literal notranslate"><span class="pre">lam_l[lead_hour]_d0[domain_id].nc</span></code></li>
+</ul>
+</div>
+<div class="section" id="check-if-all-the-required-data-are-presented">
+<h3>1.1.3 check if all the required data are presented<a class="headerlink" href="#check-if-all-the-required-data-are-presented" title="Permalink to this headline">¶</a></h3>
+<p>In order to estimate the model error, a full set of data
+(under the directory with the valid time as directory name)
+must include: global forecast data, global analysis data and LAM forecast data.
+The following codes are used to check the availability of full dataset:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">check_hist_data</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+   <span class="n">all_data_available</span> <span class="o">=</span> <span class="p">{}</span>
+   <span class="n">start_val_datetime</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">start_datetime</span>
+   <span class="n">end_val_datetime</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">end_datetime</span>
+   <span class="n">cur_val_datetime</span> <span class="o">=</span> <span class="n">start_val_datetime</span>
+
+   <span class="k">while</span> <span class="n">cur_val_datetime</span> <span class="o">&lt;=</span> <span class="n">end_val_datetime</span><span class="p">:</span>
+       <span class="n">all_data_available</span><span class="p">[</span><span class="n">cur_val_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H&#39;</span><span class="p">)]</span> <span class="o">=</span> \
+           <span class="n">var_bld_err_processing</span><span class="o">.</span><span class="n">init_all_data_available</span><span class="p">(</span>
+               <span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">forecast_length</span><span class="p">))</span>
+
+       <span class="c1"># check forecasts</span>
+       <span class="k">for</span> <span class="n">modeltype</span> <span class="ow">in</span> <span class="n">MODELTYPES</span><span class="p">:</span>
+           <span class="n">model_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                   <span class="n">args</span><span class="o">.</span><span class="n">work_dir</span><span class="p">,</span>  <span class="s1">&#39;hist_data&#39;</span><span class="p">,</span>
+                   <span class="n">cur_val_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H&#39;</span><span class="p">),</span>
+                   <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_l</span><span class="si">{}</span><span class="s1">_d0</span><span class="si">{}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                       <span class="n">modeltype</span><span class="p">,</span>
+                       <span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">forecast_length</span><span class="p">),</span>
+                       <span class="n">args</span><span class="o">.</span><span class="n">domain_id</span><span class="p">))</span>
+
+           <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">model_path</span><span class="p">):</span>
+               <span class="n">all_data_available</span><span class="p">[</span><span class="n">cur_val_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H&#39;</span><span class="p">)][</span>
+                   <span class="n">modeltype</span><span class="p">][</span><span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">forecast_length</span><span class="p">)]</span> <span class="o">=</span> <span class="kc">False</span>
+
+       <span class="c1"># check analysis</span>
+       <span class="n">model_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+           <span class="n">args</span><span class="o">.</span><span class="n">work_dir</span><span class="p">,</span> <span class="s1">&#39;hist_data&#39;</span><span class="p">,</span>
+           <span class="n">cur_val_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H&#39;</span><span class="p">),</span>
+           <span class="s1">&#39;ana_l0_d0</span><span class="si">{}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">domain_id</span><span class="p">))</span>
+       <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">model_path</span><span class="p">):</span>
+           <span class="n">all_data_available</span><span class="p">[</span>
+               <span class="n">cur_val_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H&#39;</span><span class="p">)][</span><span class="s1">&#39;ana&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+       <span class="n">cur_val_datetime</span> <span class="o">=</span> <span class="n">cur_val_datetime</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span>
+           <span class="n">seconds</span><span class="o">=</span><span class="mi">3600</span><span class="o">*</span><span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">analysis_interval</span><span class="p">))</span>
+
+   <span class="k">return</span> <span class="n">all_data_available</span>
+</pre></div>
+</div>
+<p>The output <code class="docutils literal notranslate"><span class="pre">all_data_available</span></code> is a <code class="docutils literal notranslate"><span class="pre">dict</span></code> with nested keys as:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">valid_time</span> <span class="pre">=&gt;</span> <span class="pre">data_type</span> <span class="pre">=&gt;</span> <span class="pre">lead_hour</span></code></li>
+</ul>
+<p>Where <code class="docutils literal notranslate"><span class="pre">valid</span> <span class="pre">time</span></code> has the format of <code class="docutils literal notranslate"><span class="pre">YYYYMMDDHH</span></code>, <code class="docutils literal notranslate"><span class="pre">data_type</span></code> can be
+either <code class="docutils literal notranslate"><span class="pre">ana</span></code> or <code class="docutils literal notranslate"><span class="pre">fcst</span></code>, and <code class="docutils literal notranslate"><span class="pre">lead_hour</span></code> is the lead hour for the data
+(e.g., if data_type is <code class="docutils literal notranslate"><span class="pre">ana</span></code>, <code class="docutils literal notranslate"><span class="pre">lead_hour</span></code> must be <code class="docutils literal notranslate"><span class="pre">0</span></code>). A <code class="docutils literal notranslate"><span class="pre">True</span></code> value
+will be returned if the full dataset is available</p>
+</div>
+</div>
+<div class="section" id="step-1-2-determine-the-model-error-estimation-criteria">
+<h2>STEP 1.2 Determine the model error estimation criteria<a class="headerlink" href="#step-1-2-determine-the-model-error-estimation-criteria" title="Permalink to this headline">¶</a></h2>
+<p>In the blending scheme, the quality of the blended analysis is usually
+dependent on several criteria (these criteria are obtained
+from some sensitivity studies in New Zealand):</p>
+<p>In the codes, there are two things to be considered to meet this criteria:</p>
+<ul class="simple">
+<li>the ratio of the large scale information in dBZ</li>
+<li>the ratio of rainfall areas over lands</li>
+</ul>
+<div class="section" id="it-would-be-good-if-the-background-does-not-have-significant-large-scale-forcing">
+<h3>1.2.1 It would be good if the background does not have significant large scale forcing:<a class="headerlink" href="#it-would-be-good-if-the-background-does-not-have-significant-large-scale-forcing" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="a-obtain-the-column-maximum-dbz">
+<h4>(a). Obtain the column maximum dBZ:<a class="headerlink" href="#a-obtain-the-column-maximum-dbz" title="Permalink to this headline">¶</a></h4>
+<p>The codes obtaining the column maximum dBZ are:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mdbz</span> <span class="o">=</span> <span class="n">getvar</span><span class="p">(</span><span class="n">ncfile</span><span class="p">,</span> <span class="s1">&#39;mdbz&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">mdbz</span></code> calculated (as a 2D array) is shown below:</p>
+<a class="reference internal image-reference" href="_images/mdbz.png"><img alt="_images/mdbz.png" src="_images/mdbz.png" style="width: 650px;" /></a>
+</div>
+<div class="section" id="b-obtain-the-power-along-latitude-using-welch-s-method">
+<h4>(b).Obtain the power along latitude using Welch's method::<a class="headerlink" href="#b-obtain-the-power-along-latitude-using-welch-s-method" title="Permalink to this headline">¶</a></h4>
+<p>The codes obtaining the power along altitude are:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">data_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+    <span class="n">cur_dbz</span> <span class="o">=</span> <span class="n">mdbz</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">model_power_along_lat</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">welch</span><span class="p">(</span><span class="n">cur_dbz</span><span class="p">,</span> <span class="n">nperseg</span><span class="o">=</span><span class="n">data_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">model_power_along_lat</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">model_power_along_lat</span><span class="p">)</span>
+<span class="n">model_power_along_lat</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">model_power_along_lat</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">model_power_along_lat</span></code> (1D, x-axis indicates the wavenumber) is shown below:</p>
+<a class="reference internal image-reference" href="_images/power.png"><img alt="_images/power.png" src="_images/power.png" style="width: 650px;" /></a>
+</div>
+<div class="section" id="c-obtain-the-ratio-of-large-scale-power-over-the-total-power">
+<h4>(c). Obtain the ratio of large scale power over the total power:<a class="headerlink" href="#c-obtain-the-ratio-of-large-scale-power-over-the-total-power" title="Permalink to this headline">¶</a></h4>
+<p>The threshold of determining the large scale power would be the maximum
+tolerable wavenumber
+(e.g., the maximum distance between different radiosonds):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">total_power</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">model_power_along_lat</span><span class="p">)</span>
+<span class="n">large_scale_power</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">model_power_along_lat</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">max_wavenumber</span><span class="p">])</span>
+<span class="n">large_scale_power_ratio</span> <span class="o">=</span> <span class="n">large_scale_power</span><span class="o">/</span><span class="n">total_power</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="it-would-be-good-if-the-background-is-mostly-dry">
+<h3>1.2.2 It would be good if the background is mostly dry:<a class="headerlink" href="#it-would-be-good-if-the-background-is-mostly-dry" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="a-obtain-the-rainfall-area-over-lands">
+<h4>(a). Obtain the rainfall area over lands:<a class="headerlink" href="#a-obtain-the-rainfall-area-over-lands" title="Permalink to this headline">¶</a></h4>
+<p>The codes obtaining the rainfall over lands:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mdbz</span><span class="p">[</span><span class="n">topo</span> <span class="o">&lt;</span> <span class="n">lowest_land_height</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">NaN</span>
+</pre></div>
+</div>
+<p>For example, maximum reflectivity over New Zealand is shown as below:</p>
+<a class="reference internal image-reference" href="_images/rainfall_lands.png"><img alt="_images/rainfall_lands.png" src="_images/rainfall_lands.png" style="width: 550px;" /></a>
+<p>Then we can have the ratios between total wet grid points (raining) and dry grid points:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">wet_points</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">mdbz</span> <span class="o">&gt;</span> <span class="n">lowest_dbz_consider_dry</span><span class="p">)</span>
+<span class="n">dry_points</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">mdbz</span> <span class="o">&lt;</span> <span class="n">lowest_dbz_consider_dry</span><span class="p">)</span>
+<span class="n">wet_ratio</span> <span class="o">=</span> <span class="n">wet_points</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">dry_points</span> <span class="o">+</span> <span class="n">wet_points</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="determine-if-the-blending-can-be-continued">
+<h3>1.2.3 Determine if the blending can be continued<a class="headerlink" href="#determine-if-the-blending-can-be-continued" title="Permalink to this headline">¶</a></h3>
+<p>If the system:</p>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt>does not have very strong large-scale forcing:</dt>
+<dd><ul class="first last">
+<li>threshold is <code class="docutils literal notranslate"><span class="pre">WET_CRITERIAS['max_allowed_large_scale_power']</span></code></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>the system is mostly dry:</dt>
+<dd><ul class="first last">
+<li>threshold is <code class="docutils literal notranslate"><span class="pre">WET_CRITERIAS['max_allowed_wet_ratio']</span></code></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<p>we consider that the blending process can be continued:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">large_scale_power_ratio</span> <span class="o">&lt;</span> <span class="n">WET_CRITERIAS</span><span class="p">[</span><span class="s1">&#39;max_allowed_large_scale_power&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">wet_ratio</span> <span class="o">&lt;</span> <span class="n">WET_CRITERIAS</span><span class="p">[</span><span class="s1">&#39;max_allowed_wet_ratio&#39;</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">large_scale_power_ratio</span><span class="p">,</span> <span class="n">wet_ratio</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="n">large_scale_power_ratio</span><span class="p">,</span> <span class="n">wet_ratio</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="step-1-3-extract-the-model-data">
+<h2>STEP 1.3 extract the model data<a class="headerlink" href="#step-1-3-extract-the-model-data" title="Permalink to this headline">¶</a></h2>
+<p>If the system passes the wet criteria checks (e.g., how strong of the large scale information), we start extracting the model data for
+* (1) global model analysis,
+* (2) global model forecasts and
+* (3) LAM forecasts</p>
+<div class="section" id="read-global-model-forecasts-and-lam-forecasts">
+<h3>1.3.1 Read global model forecasts and LAM forecasts<a class="headerlink" href="#read-global-model-forecasts-and-lam-forecasts" title="Permalink to this headline">¶</a></h3>
+<p>For example, in the following codes, <code class="docutils literal notranslate"><span class="pre">MODELTYPES</span></code> is <code class="docutils literal notranslate"><span class="pre">['lam',</span> <span class="pre">'glb']</span></code>.
+Moreover, if the model variable is wind (e.g., either <code class="docutils literal notranslate"><span class="pre">U</span></code> and <code class="docutils literal notranslate"><span class="pre">V</span></code>), wind speed is stored:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">modeltype</span> <span class="ow">in</span> <span class="n">MODELTYPES</span><span class="p">:</span>
+    <span class="n">gridata</span><span class="p">[</span><span class="n">cur_val_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H&#39;</span><span class="p">)][</span><span class="n">modeltype</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">gridata</span><span class="p">[</span><span class="n">cur_val_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H&#39;</span><span class="p">)][</span><span class="n">modeltype</span><span class="p">][</span><span class="n">fcst_length</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">model_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">work_dir</span><span class="p">,</span>  <span class="s1">&#39;hist_data&#39;</span><span class="p">,</span>
+        <span class="n">cur_val_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_l</span><span class="si">{}</span><span class="s1">_d0</span><span class="si">{}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">modeltype</span><span class="p">,</span> <span class="n">fcst_length</span><span class="p">,</span> <span class="n">domain_id</span><span class="p">))</span>
+
+    <span class="p">(</span><span class="n">gridata</span><span class="p">[</span><span class="n">cur_val_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H&#39;</span><span class="p">)][</span><span class="n">modeltype</span><span class="p">][</span><span class="n">fcst_length</span><span class="p">],</span>
+    <span class="n">topo</span><span class="p">,</span> <span class="n">model_height</span><span class="p">)</span> <span class="o">=</span> <span class="n">obtain_griddata</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">model_variable</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">model_variable</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="s1">&#39;V&#39;</span><span class="p">]:</span>
+        <span class="n">gridata_wind_spd</span><span class="p">[</span><span class="n">modeltype</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">gridata_wind_spd</span><span class="p">[</span><span class="n">modeltype</span><span class="p">][</span><span class="n">fcst_length</span><span class="p">],</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">obtain_griddata</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="s1">&#39;UV&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>gridata has the structure of:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">valid_time(YYYYMMDDHH)</span> <span class="pre">=&gt;</span> <span class="pre">lam/glb</span> <span class="pre">=&gt;</span> <span class="pre">forecast_length</span></code></li>
+</ul>
+<p>if winds data are required, we also have the wind speed data stored in <code class="docutils literal notranslate"><span class="pre">gridata_wind_spd</span></code></p>
+</div>
+<div class="section" id="read-global-model-analysis-data">
+<h3>1.3.2 Read global model analysis data<a class="headerlink" href="#read-global-model-analysis-data" title="Permalink to this headline">¶</a></h3>
+<p>The following codes show how the global model analysis is obtained:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">model_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">work_dir</span><span class="p">,</span>  <span class="s1">&#39;hist_data&#39;</span><span class="p">,</span> <span class="n">cur_val_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H&#39;</span><span class="p">),</span> <span class="s1">&#39;ana_l0_d0</span><span class="si">{}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">domain_id</span><span class="p">))</span>
+<span class="n">gridata</span><span class="p">[</span><span class="n">cur_val_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H&#39;</span><span class="p">)][</span><span class="s1">&#39;ana&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">topo</span><span class="p">,</span> <span class="n">model_height</span> <span class="o">=</span> <span class="n">obtain_griddata</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">model_variable</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">model_variable</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="s1">&#39;V&#39;</span><span class="p">]:</span>
+    <span class="n">gridata_wind_spd</span><span class="p">[</span><span class="s1">&#39;ana&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">gridata_wind_spd</span><span class="p">[</span><span class="s1">&#39;ana&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">obtain_griddata</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="s1">&#39;UV&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The analysis data are also stored in gridata, which has the structure as:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">valid_time(YYYYMMDDHH)</span> <span class="pre">=&gt;</span> <span class="pre">ana</span> <span class="pre">=&gt;</span> <span class="pre">0</span></code></li>
+</ul>
+<p>Same as the extracted model forecast data, if winds data are required,
+we also have the wind speed analysis data stored in
+<code class="docutils literal notranslate"><span class="pre">gridata_wind_spd[YYYYMMDDHH]['ana'][0]</span></code></p>
+</div>
+</div>
+<div class="section" id="step-1-4-convert-model-data-using-fft">
+<h2>STEP 1.4 convert model data using FFT<a class="headerlink" href="#step-1-4-convert-model-data-using-fft" title="Permalink to this headline">¶</a></h2>
+<p>After extracted global model (forecasts and LAM) and LAM model (forecasts),
+we convert the data from grid space to spectral space level by level:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start_level</span><span class="p">,</span> <span class="n">end_level</span><span class="p">):</span>
+    <span class="n">cur_griddata_lvl</span> <span class="o">=</span> <span class="n">cur_griddata</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="p">(</span><span class="n">cur_fft_coef_useful_lvl</span><span class="p">,</span> <span class="n">cur_power_spectrum_useful_lvl</span><span class="p">,</span>
+     <span class="n">cur_freq_rows_useful_lvl</span><span class="p">,</span> <span class="n">cur_freq_cols_useful_lvl</span><span class="p">)</span> <span class="o">=</span> <span class="n">run_fft</span><span class="p">(</span><span class="n">cur_griddata_lvl</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="section" id="convert-2d-grid-data-using-2d-fft">
+<h3>1.4.1 convert 2D grid data using 2D FFT:<a class="headerlink" href="#convert-2d-grid-data-using-2d-fft" title="Permalink to this headline">¶</a></h3>
+<p>The 2D model grid data (at each level) is to be converted to a spectral space.
+For example, the following figure shows the temperature data at Level 0:</p>
+<a class="reference internal image-reference" href="_images/griddata.png"><img alt="_images/griddata.png" src="_images/griddata.png" style="width: 600px;" /></a>
+<p>Where <code class="docutils literal notranslate"><span class="pre">numpy.fft</span></code> class is used to convert grid data to spectral data as below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fft_coeff_all</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">griddata</span><span class="p">)</span>
+<span class="n">fft_coeff_all</span> <span class="o">=</span> <span class="n">fftpack</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">fft_coeff_all</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The following figure shows the 2D FFT coefficient as an example:</p>
+<a class="reference internal image-reference" href="_images/fft_2d.png"><img alt="_images/fft_2d.png" src="_images/fft_2d.png" style="width: 550px;" /></a>
+</div>
+<div class="section" id="create-the-power-from-the-grid-data">
+<h3>1.4.2 create the power from the grid data:<a class="headerlink" href="#create-the-power-from-the-grid-data" title="Permalink to this headline">¶</a></h3>
+<p>We also create the FFT power using the method mentioned in:
+<a class="reference external" href="https://www.researchgate.net/post/How_to_find_Power_Spectral_Density_PSD_of_any_image">https://www.researchgate.net/post/How_to_find_Power_Spectral_Density_PSD_of_any_image</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">power_spectrum_useful</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">griddata</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span>
+</pre></div>
+</div>
+<p>An example of the 2D FFT power is:</p>
+<a class="reference internal image-reference" href="_images/fft_power_2d.png"><img alt="_images/fft_power_2d.png" src="_images/fft_power_2d.png" style="width: 600px;" /></a>
+</div>
+<div class="section" id="return-standard-powers-and-fft-coeffs">
+<h3>1.4.3 return standard powers and FFT coeffs<a class="headerlink" href="#return-standard-powers-and-fft-coeffs" title="Permalink to this headline">¶</a></h3>
+<p>The function would return the FFT coefficients and powers for global (fcst and analysis) and LAM (fcst):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">return</span> <span class="p">(</span><span class="n">cur_fft_coef_useful</span><span class="p">,</span> <span class="n">cur_power_spectrum_useful</span><span class="p">,</span>
+        <span class="n">cur_freq_rows_useful</span><span class="p">,</span> <span class="n">cur_freq_cols_useful</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Where:
+* <code class="docutils literal notranslate"><span class="pre">cur_fft_coef_useful</span></code>: FFT coefficients with the structure of:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>`model_type(&#39;lam/glb/lam&#39;) =&gt; forecast_lead_hour =&gt; model_levels`
+ (e.g., cur_fft_coef_useful[&#39;lam&#39;][12][35])
+</pre></div>
+</div>
+<ul>
+<li><p class="first"><code class="docutils literal notranslate"><span class="pre">cur_power_spectrum_useful</span></code>: FFT powers with the structure of:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>`model_type(&#39;lam/glb/lam&#39;) =&gt; forecast_lead_hour =&gt; model_levels`
+ (e.g., cur_power_spectrum_useful[&#39;lam&#39;][12][35])
+</pre></div>
+</div>
+</li>
+<li><p class="first"><code class="docutils literal notranslate"><span class="pre">cur_freq_rows_useful</span></code> and <code class="docutils literal notranslate"><span class="pre">cur_freq_cols_useful</span></code>: FFT frequencies</p>
+</li>
+</ul>
+</div>
+<div class="section" id="create-the-welch-power-vertical-profile-from-the-grid-data">
+<h3>1.4.4 create the Welch power vertical profile from the grid data:<a class="headerlink" href="#create-the-welch-power-vertical-profile-from-the-grid-data" title="Permalink to this headline">¶</a></h3>
+<p>Besides calculating the power using the standard method (in <code class="docutils literal notranslate"><span class="pre">1.4.2</span></code>),
+we also calculate the power vertical power with the Welch's method:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">power_spectrum_welch</span> <span class="o">=</span> <span class="n">fft_process</span><span class="o">.</span><span class="n">obtain_power_spectrum_using_welch</span><span class="p">(</span>
+    <span class="n">gridata</span><span class="p">[</span><span class="n">cur_val_datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">%H&#39;</span><span class="p">)],</span>
+    <span class="n">fcst_length</span><span class="p">,</span> <span class="n">MODELTYPES</span><span class="p">,</span>
+    <span class="n">total_model_levels</span><span class="p">,</span> <span class="n">max_wavenumber</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">power_spectrum_welch</span></code> has the structure of: <code class="docutils literal notranslate"><span class="pre">model_type('lam/glb/lam')</span> <span class="pre">=&gt;</span> <span class="pre">forecast_lead_hour</span></code>, which is a list
+(e.g., <code class="docutils literal notranslate"><span class="pre">power_spectrum_welch['lam'][12]</span> <span class="pre">=</span> <span class="pre">[1.1,</span> <span class="pre">3.0,</span> <span class="pre">7.5,</span> <span class="pre">5.2,</span> <span class="pre">...,</span> <span class="pre">1.3]</span></code>)</p>
+<p>The following figure shows the Welch power vertical profile (<cite>power_spectrum_welch</cite>):</p>
+<a class="reference internal image-reference" href="_images/welch_power_profile.png"><img alt="_images/welch_power_profile.png" src="_images/welch_power_profile.png" style="width: 500px;" /></a>
+</div>
+</div>
+<div class="section" id="step-1-5-calculate-model-errors">
+<h2>STEP 1.5 calculate model errors<a class="headerlink" href="#step-1-5-calculate-model-errors" title="Permalink to this headline">¶</a></h2>
+<p>Global model forecasts and LAM forecasts errors are calculated
+using the global model analysis as the &quot;truth&quot;:</p>
+<div class="section" id="step-1-5-1-running-inverse-fft-for-global-lam-forecasts-and-global-analysis-for-all-required-wavenumbers">
+<h3>STEP 1.5.1 Running inverse FFT for global/LAM forecasts and global analysis for all required wavenumbers:<a class="headerlink" href="#step-1-5-1-running-inverse-fft-for-global-lam-forecasts-and-global-analysis-for-all-required-wavenumbers" title="Permalink to this headline">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">maximum</span> <span class="pre">wave</span> <span class="pre">numbers</span></code> is determined by the distance between different
+radiosondes, and then the inverse FFT is carried out at each required frequencies:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">istep</span><span class="p">,</span> <span class="n">cur_thres</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_wavenumber_threshold</span><span class="p">)):</span>
+   <span class="k">if</span> <span class="n">cur_thres</span> <span class="o">&gt;</span> <span class="n">max_wavenumber_threshold</span><span class="p">:</span>
+       <span class="k">break</span>
+   <span class="n">cur_lam</span> <span class="o">=</span>  <span class="n">_run_ifft</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">fft_coef_useful</span><span class="p">[</span><span class="s1">&#39;lam&#39;</span><span class="p">][</span><span class="n">fcst_length</span><span class="p">]),</span> <span class="n">cur_thres</span><span class="p">)</span>
+   <span class="n">cur_glb</span> <span class="o">=</span>  <span class="n">_run_ifft</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">fft_coef_useful</span><span class="p">[</span><span class="s1">&#39;glb&#39;</span><span class="p">][</span><span class="n">fcst_length</span><span class="p">]),</span> <span class="n">cur_thres</span><span class="p">)</span>
+   <span class="n">cur_ana</span> <span class="o">=</span>  <span class="n">_run_ifft</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">fft_coef_useful</span><span class="p">[</span><span class="s1">&#39;ana&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="n">cur_thres</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The following figure shows <code class="docutils literal notranslate"><span class="pre">cur_lam</span></code>, <code class="docutils literal notranslate"><span class="pre">cur_glb</span></code> and <code class="docutils literal notranslate"><span class="pre">cur_ana</span></code> at level 0 with the wavenumber 0:</p>
+<a class="reference internal image-reference" href="_images/wavenumner0.png"><img alt="_images/wavenumner0.png" src="_images/wavenumner0.png" style="width: 500px;" /></a>
+</div>
+<div class="section" id="step-1-5-2-obtain-the-user-defined-error-ratio">
+<h3>STEP 1.5.2 Obtain the user defined error ratio<a class="headerlink" href="#step-1-5-2-obtain-the-user-defined-error-ratio" title="Permalink to this headline">¶</a></h3>
+<p>One can tune the calculated model errors, e.g., the user can reduce the
+calculated global model temperature forecast error by 25% by setting
+<code class="docutils literal notranslate"><span class="pre">BLD_VAR_ERR_RATIO['T']['glb']</span> <span class="pre">=</span> <span class="pre">0.75</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># user can set a ratio to time the calculated the errors</span>
+<span class="c1"># default: for both global and LAM are both 1.0</span>
+<span class="p">(</span><span class="n">bld_var_err_lam_ratio</span><span class="p">,</span> <span class="n">bld_var_err_glb_ratio</span><span class="p">)</span> <span class="o">=</span> \
+<span class="n">_obtain_user_external_err_ratio</span><span class="p">(</span><span class="n">model_variable</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="step-1-5-3-obtain-the-model-mean-values-over-levels">
+<h3>STEP 1.5.3 Obtain the model mean values over levels<a class="headerlink" href="#step-1-5-3-obtain-the-model-mean-values-over-levels" title="Permalink to this headline">¶</a></h3>
+<p>We also need to obtain the vertical profile of model mean values of
+global and LAM forecasts and global analysis:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">_create_mean_profile</span><span class="p">(</span><span class="n">cur_lam</span><span class="p">,</span> <span class="n">cur_glb</span><span class="p">,</span> <span class="n">cur_ana</span><span class="p">):</span>
+   <span class="n">cur_lam_mean_profile</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">cur_lam</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+   <span class="n">cur_glb_mean_profile</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">cur_glb</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+   <span class="n">cur_ana_mean_profile</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">cur_ana</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+
+   <span class="k">return</span> <span class="p">(</span><span class="n">cur_lam_mean_profile</span><span class="p">,</span> <span class="n">cur_glb_mean_profile</span><span class="p">,</span> <span class="n">cur_ana_mean_profile</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The following figures show the mean model values over different levels
+(e.g., L0-L5, L15-L20 and L40-L45):</p>
+<a class="reference internal image-reference" href="_images/l0_l5.png"><img alt="_images/l0_l5.png" src="_images/l0_l5.png" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="_images/l15-20.png"><img alt="_images/l15-20.png" src="_images/l15-20.png" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="_images/l40-45.png"><img alt="_images/l40-45.png" src="_images/l40-45.png" style="width: 500px;" /></a>
+</div>
+<div class="section" id="step-1-5-4-obtain-the-model-errors">
+<h3>STEP 1.5.4 Obtain the model errors<a class="headerlink" href="#step-1-5-4-obtain-the-model-errors" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="step-1-5-4-1-calculate-the-errors-of-global-forecasts-and-lam-forecasts">
+<h4>STEP 1.5.4.1 calculate the errors of global forecasts and LAM forecasts<a class="headerlink" href="#step-1-5-4-1-calculate-the-errors-of-global-forecasts-and-lam-forecasts" title="Permalink to this headline">¶</a></h4>
+<p>We assume that the truth is the global analysis:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">lam_err</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">cur_lam</span><span class="o">.</span><span class="n">real</span> <span class="o">-</span> <span class="n">cur_ana</span><span class="o">.</span><span class="n">real</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">glb_err</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">cur_glb</span><span class="o">.</span><span class="n">real</span> <span class="o">-</span> <span class="n">cur_ana</span><span class="o">.</span><span class="n">real</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Following figure shows the model errors at the level 0:</p>
+<a class="reference internal image-reference" href="_images/model_err_0.png"><img alt="_images/model_err_0.png" src="_images/model_err_0.png" style="width: 500px;" /></a>
+<p>From the 3D <code class="docutils literal notranslate"><span class="pre">lam_err</span></code> and <code class="docutils literal notranslate"><span class="pre">glb_err</span></code>, we would have the mean error over levels for global and LAM models:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">lam_err_profile_mean</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">lam_err</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">glb_err_profile_mean</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">glb_err</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The following figures show the mean model errors over levels:</p>
+<a class="reference internal image-reference" href="_images/mean_err_levels.png"><img alt="_images/mean_err_levels.png" src="_images/mean_err_levels.png" style="width: 500px;" /></a>
+</div>
+<div class="section" id="step-1-5-4-2-update-model-errors-if-the-analysis-data-is-not-in-the-middle-of-global-and-lam-forecasts">
+<h4>STEP 1.5.4.2 update model errors if the analysis data is not in the middle of global and LAM forecasts<a class="headerlink" href="#step-1-5-4-2-update-model-errors-if-the-analysis-data-is-not-in-the-middle-of-global-and-lam-forecasts" title="Permalink to this headline">¶</a></h4>
+<p>According to BLUE, in theory the truth is expected to sit in the middle of
+two forecasts (global and LAM), however the fact is that the global analysis
+can be either on the left or right side of the two forecasts, so:</p>
+<p>If the analysis data is not in the middle of global and LAM forecasts:</p>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt>global model error &lt; LAM model error:</dt>
+<dd><ul class="first last">
+<li>global error == 0.0</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>global model error &gt; LAM model error:</dt>
+<dd><ul class="first last">
+<li>LAM error == 0.0</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<p>The above updates are calculated level by level over all levels. The codes are presented as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">cur_lvl</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">total_model_levels</span><span class="p">):</span>
+<span class="n">cur_lam_mean</span> <span class="o">=</span> <span class="n">cur_lam_mean_profile</span><span class="p">[</span><span class="n">cur_lvl</span><span class="p">]</span>
+<span class="n">cur_glb_mean</span> <span class="o">=</span> <span class="n">cur_glb_mean_profile</span><span class="p">[</span><span class="n">cur_lvl</span><span class="p">]</span>
+<span class="n">cur_ana_mean</span> <span class="o">=</span> <span class="n">cur_ana_mean_profile</span><span class="p">[</span><span class="n">cur_lvl</span><span class="p">]</span>
+
+<span class="c1"># step 2.1: if analysis is not in the middle of LAM and global model</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="p">((</span><span class="n">cur_lam_mean</span> <span class="o">&lt;</span> <span class="n">cur_ana_mean</span> <span class="o">&lt;</span> <span class="n">cur_glb_mean</span><span class="p">)</span> <span class="ow">or</span>
+   <span class="p">(</span><span class="n">cur_glb_mean</span> <span class="o">&lt;</span> <span class="n">cur_ana_mean</span> <span class="o">&lt;</span> <span class="n">cur_ana_mean</span><span class="p">)):</span>
+   <span class="c1"># step 2.2: if LAM has smaller error than the global model</span>
+   <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">cur_lam_mean</span> <span class="o">-</span> <span class="n">cur_ana_mean</span><span class="p">)</span> <span class="o">&lt;</span>
+           <span class="nb">abs</span><span class="p">(</span><span class="n">cur_glb_mean</span> <span class="o">-</span> <span class="n">cur_ana_mean</span><span class="p">)):</span>
+       <span class="n">lam_err_profile_mean</span><span class="p">[</span><span class="n">cur_lvl</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+   <span class="c1"># step 2.2: if LAM has bigger error than the global model</span>
+   <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">cur_lam_mean</span> <span class="o">-</span> <span class="n">cur_ana_mean</span><span class="p">)</span> <span class="o">&gt;</span>
+           <span class="nb">abs</span><span class="p">(</span><span class="n">cur_glb_mean</span> <span class="o">-</span> <span class="n">cur_ana_mean</span><span class="p">)):</span>
+       <span class="n">glb_err_profile_mean</span><span class="p">[</span><span class="n">cur_lvl</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="step-1-5-4-3-convert-mean-model-error-profile-to-a-shifted-power-equivalent-matrix">
+<h4>STEP 1.5.4.3 convert mean model error profile to a shifted power equivalent matrix:<a class="headerlink" href="#step-1-5-4-3-convert-mean-model-error-profile-to-a-shifted-power-equivalent-matrix" title="Permalink to this headline">¶</a></h4>
+<p>We need to convert model error profile (e.g., a list or 2D array) to a 3D array.
+For the error matrix, the x and y axes are the FFT frequencies/wavenumbers
+(the central wavenumber sits in the middle of the matrix):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">_create_err_array</span><span class="p">(</span><span class="n">err_dist1</span><span class="p">,</span> <span class="n">cur_coef_thres</span><span class="p">,</span> <span class="n">pre_coef_thres</span><span class="p">,</span> <span class="n">cur_rms</span><span class="p">):</span>
+   <span class="n">data_shape</span> <span class="o">=</span> <span class="n">err_dist1</span><span class="p">[</span><span class="mi">0</span><span class="p">,:,:]</span><span class="o">.</span><span class="n">shape</span>
+   <span class="c1"># err_dist1 = numpy.zeros(err_dist.shape)</span>
+   <span class="n">err_dist2</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">err_dist1</span><span class="p">)</span>
+   <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">err_dist1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+       <span class="n">err_dist1</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">data_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="o">-</span><span class="n">cur_coef_thres</span><span class="p">:</span> <span class="n">data_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="o">-</span><span class="n">pre_coef_thres</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">cur_rms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+       <span class="n">err_dist1</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">data_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="o">+</span><span class="n">pre_coef_thres</span><span class="p">:</span> <span class="n">data_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="o">+</span><span class="n">cur_coef_thres</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">cur_rms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+       <span class="n">err_dist1</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="n">data_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="o">-</span><span class="n">cur_coef_thres</span><span class="p">:</span> <span class="n">data_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="o">-</span><span class="n">pre_coef_thres</span><span class="p">]</span> <span class="o">=</span> <span class="n">cur_rms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+       <span class="n">err_dist1</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="n">data_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="o">+</span><span class="n">pre_coef_thres</span><span class="p">:</span> <span class="n">data_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="o">+</span><span class="n">cur_coef_thres</span><span class="p">]</span> <span class="o">=</span> <span class="n">cur_rms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+   <span class="n">x</span> <span class="o">=</span> <span class="n">err_dist2</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+   <span class="n">err_dist1</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">err_dist2</span><span class="p">[</span><span class="n">x</span><span class="p">]</span>
+
+   <span class="k">return</span> <span class="n">err_dist1</span>
+</pre></div>
+</div>
+<p>The following figures give the error matrix for the global and LAM forecasts:</p>
+<a class="reference internal image-reference" href="_images/model_err_matrix.png"><img alt="_images/model_err_matrix.png" src="_images/model_err_matrix.png" style="width: 600px;" /></a>
+</div>
+<div class="section" id="step-1-5-4-4-smooth-the-model-error-matrix">
+<h4>STEP 1.5.4.4 smooth the model error matrix:<a class="headerlink" href="#step-1-5-4-4-smooth-the-model-error-matrix" title="Permalink to this headline">¶</a></h4>
+<p>We usually need to smooth the model error matrix for both global and LAM forecasts:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">lam_err</span><span class="p">,</span> <span class="n">glb_err</span> <span class="o">=</span> <span class="n">_smooth_model_error_over_frequencies</span><span class="p">(</span>
+   <span class="n">lam_err</span><span class="p">,</span> <span class="n">glb_err</span><span class="p">,</span> <span class="n">total_model_levels</span><span class="p">,</span>
+   <span class="n">smooth_number</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The following figures give the smoothed error matrix for the global and LAM forecasts:</p>
+<a class="reference internal image-reference" href="_images/model_err_matrix2.png"><img alt="_images/model_err_matrix2.png" src="_images/model_err_matrix2.png" style="width: 600px;" /></a>
+</div>
+<div class="section" id="step-1-5-4-5-store-the-model-error-matrix">
+<h4>STEP 1.5.4.5 store the model error matrix:<a class="headerlink" href="#step-1-5-4-5-store-the-model-error-matrix" title="Permalink to this headline">¶</a></h4>
+<p>After the above steps, we store the model error matrix in <code class="docutils literal notranslate"><span class="pre">inv_fft_err</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">inv_fft_err</span><span class="p">[</span><span class="s1">&#39;lam&#39;</span><span class="p">][</span><span class="n">fcst_length</span><span class="p">]</span> <span class="o">=</span> <span class="n">lam_err</span>
+<span class="n">inv_fft_err</span><span class="p">[</span><span class="s1">&#39;glb&#39;</span><span class="p">][</span><span class="n">fcst_length</span><span class="p">]</span> <span class="o">=</span> <span class="n">glb_err</span>
+</pre></div>
+</div>
+<p>The shapes of <code class="docutils literal notranslate"><span class="pre">lam_err</span></code> and <code class="docutils literal notranslate"><span class="pre">glb_err</span></code> are the same as the shape of
+gridded data, where x and y axes indicate the FFT wavenumber/frequencies
+from 2D FFT transform
+(e.g., if the grid data has the shape of <code class="docutils literal notranslate"><span class="pre">(50,</span> <span class="pre">519,</span> <span class="pre">423)</span></code>,
+the <code class="docutils literal notranslate"><span class="pre">lam_err</span></code> and <code class="docutils literal notranslate"><span class="pre">glb_err</span></code> have the shape of <code class="docutils literal notranslate"><span class="pre">(50,</span> <span class="pre">519,</span> <span class="pre">423)</span></code> as well)</p>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Step 1 Preparing model errors</a><ul>
+<li><a class="reference internal" href="#step-1-1-download-or-prepare-the-model-inputs">STEP 1.1 Download (or prepare) the model inputs</a><ul>
+<li><a class="reference internal" href="#if-download-model-inputs-from-aws-s3">1.1.1 if download model inputs from AWS S3</a><ul>
+<li><a class="reference internal" href="#download-global-model-forecasts">download global model forecasts</a></li>
+<li><a class="reference internal" href="#download-global-model-analysis">download global model analysis</a></li>
+<li><a class="reference internal" href="#download-lam-forecasts">download LAM forecasts</a></li>
+<li><a class="reference internal" href="#data-structure-under-the-local-working-directory">data structure under the local working directory</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#if-copy-model-inputs-from-somewhere-else">1.1.2 if copy model inputs from somewhere else</a></li>
+<li><a class="reference internal" href="#check-if-all-the-required-data-are-presented">1.1.3 check if all the required data are presented</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#step-1-2-determine-the-model-error-estimation-criteria">STEP 1.2 Determine the model error estimation criteria</a><ul>
+<li><a class="reference internal" href="#it-would-be-good-if-the-background-does-not-have-significant-large-scale-forcing">1.2.1 It would be good if the background does not have significant large scale forcing:</a><ul>
+<li><a class="reference internal" href="#a-obtain-the-column-maximum-dbz">(a). Obtain the column maximum dBZ:</a></li>
+<li><a class="reference internal" href="#b-obtain-the-power-along-latitude-using-welch-s-method">(b).Obtain the power along latitude using Welch's method::</a></li>
+<li><a class="reference internal" href="#c-obtain-the-ratio-of-large-scale-power-over-the-total-power">(c). Obtain the ratio of large scale power over the total power:</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#it-would-be-good-if-the-background-is-mostly-dry">1.2.2 It would be good if the background is mostly dry:</a><ul>
+<li><a class="reference internal" href="#a-obtain-the-rainfall-area-over-lands">(a). Obtain the rainfall area over lands:</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#determine-if-the-blending-can-be-continued">1.2.3 Determine if the blending can be continued</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#step-1-3-extract-the-model-data">STEP 1.3 extract the model data</a><ul>
+<li><a class="reference internal" href="#read-global-model-forecasts-and-lam-forecasts">1.3.1 Read global model forecasts and LAM forecasts</a></li>
+<li><a class="reference internal" href="#read-global-model-analysis-data">1.3.2 Read global model analysis data</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#step-1-4-convert-model-data-using-fft">STEP 1.4 convert model data using FFT</a><ul>
+<li><a class="reference internal" href="#convert-2d-grid-data-using-2d-fft">1.4.1 convert 2D grid data using 2D FFT:</a></li>
+<li><a class="reference internal" href="#create-the-power-from-the-grid-data">1.4.2 create the power from the grid data:</a></li>
+<li><a class="reference internal" href="#return-standard-powers-and-fft-coeffs">1.4.3 return standard powers and FFT coeffs</a></li>
+<li><a class="reference internal" href="#create-the-welch-power-vertical-profile-from-the-grid-data">1.4.4 create the Welch power vertical profile from the grid data:</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#step-1-5-calculate-model-errors">STEP 1.5 calculate model errors</a><ul>
+<li><a class="reference internal" href="#step-1-5-1-running-inverse-fft-for-global-lam-forecasts-and-global-analysis-for-all-required-wavenumbers">STEP 1.5.1 Running inverse FFT for global/LAM forecasts and global analysis for all required wavenumbers:</a></li>
+<li><a class="reference internal" href="#step-1-5-2-obtain-the-user-defined-error-ratio">STEP 1.5.2 Obtain the user defined error ratio</a></li>
+<li><a class="reference internal" href="#step-1-5-3-obtain-the-model-mean-values-over-levels">STEP 1.5.3 Obtain the model mean values over levels</a></li>
+<li><a class="reference internal" href="#step-1-5-4-obtain-the-model-errors">STEP 1.5.4 Obtain the model errors</a><ul>
+<li><a class="reference internal" href="#step-1-5-4-1-calculate-the-errors-of-global-forecasts-and-lam-forecasts">STEP 1.5.4.1 calculate the errors of global forecasts and LAM forecasts</a></li>
+<li><a class="reference internal" href="#step-1-5-4-2-update-model-errors-if-the-analysis-data-is-not-in-the-middle-of-global-and-lam-forecasts">STEP 1.5.4.2 update model errors if the analysis data is not in the middle of global and LAM forecasts</a></li>
+<li><a class="reference internal" href="#step-1-5-4-3-convert-mean-model-error-profile-to-a-shifted-power-equivalent-matrix">STEP 1.5.4.3 convert mean model error profile to a shifted power equivalent matrix:</a></li>
+<li><a class="reference internal" href="#step-1-5-4-4-smooth-the-model-error-matrix">STEP 1.5.4.4 smooth the model error matrix:</a></li>
+<li><a class="reference internal" href="#step-1-5-4-5-store-the-model-error-matrix">STEP 1.5.4.5 store the model error matrix:</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="methods.html"
+                        title="previous chapter">methods</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="license.html"
+                        title="next chapter">License</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/step1.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="methods.html" title="methods"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">var_blending_docs 0.0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, sijin.zhang.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.3.
+    </div>
+  </body>
+</html>

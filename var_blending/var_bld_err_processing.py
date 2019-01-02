@@ -17,7 +17,16 @@ except:
     pass
 
 
-def wet_criteria(datapath, max_wavenumber,
+def obtain_wet_and_topo(datapath):
+    ncfile = Dataset(datapath)
+    mdbz = getvar(ncfile, 'mdbz').values
+    topo = getvar(ncfile, "HGT").values
+    ncfile.close()
+    
+    return mdbz, topo
+
+
+def wet_criteria(mdbz, topo, max_wavenumber,
                  lowest_land_height=5.0,
                  lowest_dbz_consider_dry=0.25,
                  max_allowed_large_scale_power_from_hist=None,
@@ -26,10 +35,6 @@ def wet_criteria(datapath, max_wavenumber,
     (1) the ratio of the large scale information in dbz
     (2) the ratio of rainfall areas over lands
     """
-    ncfile = Dataset(datapath)
-    mdbz = getvar(ncfile, 'mdbz').values
-    topo = getvar(ncfile, "HGT").values
-    ncfile.close()
 
     # the ratio of the large scale information in dbz
     data_shape = mdbz.shape

@@ -6,6 +6,7 @@ from glob import glob
 from setuptools import find_packages, setup
 from os.path import basename, dirname, realpath
 
+
 def main():
     return setup(
         author='Forecasting Research group',

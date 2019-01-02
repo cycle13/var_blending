@@ -9,6 +9,8 @@ from var_blending import fft_process
 from var_blending import (PLOT_LEVS, MODEL_WEIGHTS_SMOOTHING_SIGMA)
 import os
 import sys
+import gzip
+import cPickle
 
 """
 return parser.parse_args([
@@ -42,32 +44,76 @@ def valid_datetime(timestamp):
     raise argparse.ArgumentTypeError(msg)
 
 
-def setup_parser():
+def setup_parser(test_para=None):
     parser = argparse.ArgumentParser(
         description='create errors for VAR blending')
+    # ---------------------------
+    # required parameters: model paths
+    # ---------------------------
     parser.add_argument('-l', '--lam_fcst', type=str,
                         required=True, help="lam_fcst (on s3 or local)")
     parser.add_argument('-g', '--glb_fcst', type=str,
                         required=True, help="glb_fcst (on s3 or local)")
     parser.add_argument('-b', '--bld_fcst', type=str,
                         required=True, help="bld_fcst (output)")
+    parser.add_argument('-w', '--work_dir', type=str,
+                        required=True, help="work directory")
+
+    # ---------------------------
+    # required parameters: model information
+    # ---------------------------
     parser.add_argument('-t', '--total_model_levels', type=str,
                         required=True, help="total_model_levels")
     parser.add_argument('-v', '--model_var_list', nargs='+',
                         required=True,
                         help="model_var_list, e.g., T, U, V, ...")
-    parser.add_argument('-w', '--work_dir', type=str,
-                        required=True, help="work directory")
     parser.add_argument('-mw', '--max_wavenumber',
                         type=str, required=True,
                         help="max_wavenumber from global model")
 
+    # ---------------------------
+    # optional: (1) if use the wet & power constrains
+    #           (2) whether to smooth the vertical model weights
+    # ---------------------------
     parser.add_argument('--use_wet_power_constrain_from_hist',
                         dest='use_wet_power_constrain_from_hist',
                         default=False,
                         help='use wet power constrain from the '
                              'data used for calculating BE',
                         action='store_true')
+    parser.add_argument('--smooth_vertical_model_weights',
+                        dest='smooth_vertical_model_weights',
+                        default=False, help='smooth vertical model weights',
+                        action='store_true')
+
+    # ----------------------
+    # optional: if use the user defined fixed wavenumber
+    # ----------------------
+    parser.add_argument('--use_fix_wavenumber', dest='use_fix_wavenumber',
+                        default=False,
+                        help='use_fix_wavenumber to compute errors',
+                        action='store_true')
+    parser.add_argument('-fw', '--fix_wavenumber', type=str, required=False,
+                        default=None, help="fix_wavenumber")
+    parser.add_argument('-ge0', '--global_model_err_ratio0',
+                        type=str, required=False, default='1.0',
+                        help="global_model_err_ratio for large scale(max: 100%)")
+    parser.add_argument('-ge1', '--global_model_err_ratio1',
+                        type=str, required=False, default='0.0',
+                        help="global_model_err_ratio for small scale(max: 100%)")
+
+
+    # ----------------------
+    # optional: if use the pre-calculated model errors
+    # ----------------------
+    parser.add_argument('-me', '--model_err_dir',
+                        default=None, type=str, required=False,
+                        help='directory holds the pre-calculated model errors'
+                             'the model error template is '
+                             '[me]/model_errs_[var].tar.gz, '
+                             'if this one is not defined, '
+                             'model error file is obtained '
+                             'from the current working directory')
 
     # ----------------------
     # optional: generate plots
@@ -84,40 +130,34 @@ def setup_parser():
                         help=('if forecast_length is not defined, '
                               'the first datatime '
                               'in model_error matrix will be used'))
-    # ----------------------
-    # optional: whether to smooth the vertical model weights
-    # ----------------------
-    parser.add_argument('--smooth_vertical_model_weights',
-                        dest='smooth_vertical_model_weights',
-                        default=False, help='smooth vertical model weights',
-                        action='store_true')
 
-    # ----------------------
-    # optional: forecast length in model errors
-    # ----------------------
-    parser.add_argument('--use_fix_wavenumber', dest='use_fix_wavenumber',
-                        default=False,
-                        help='use_fix_wavenumber to compute errors',
-                        action='store_true')
-    parser.add_argument('-fw', '--fix_wavenumber', type=str, required=False,
-                        default=None, help="fix_wavenumber")
-
-    return parser.parse_args()
+    if not test_para:
+        return parser.parse_args()
+    else:
+        return parser.parse_args(test_para)
 
 
-if __name__ == '__main__':
-    args = setup_parser()
+def run_var_blending(test_para=None):
+    """run var blending"""
+    if not test_para:
+        args = setup_parser()
+        (mdbz, topo) = var_bld_err_processing.obtain_wet_and_topo(
+            args.lam_fcst)
+    else:
+        args = setup_parser(test_para['para'])
+        mdbz = cPickle.load(gzip.open(test_para['mdbz_path'], "rb" ))
+        topo = cPickle.load(gzip.open(test_para['topo_path'], "rb" ))
 
     # wet criteria check:
     # if the rainfall area over lands is too big, or
     #    the rainfall power ratio over large scale is too big:
     # we assume that the large scale forcing in LAM is big enough, so
     # we are not doing the blending
-    if args.use_wet_power_constrain_from_hist:
+    if args.use_wet_power_constrain_from_hist and (not args.use_fix_wavenumber):
         print '    step 0: wet criteria checks'
         passed_wet_criteria, large_scale_power_ratio, wet_ratio = \
             var_bld_err_processing.wet_criteria(
-                args.lam_fcst, int(args.max_wavenumber))
+                mdbz, topo, int(args.max_wavenumber))
         if not passed_wet_criteria:
             print('    wet criteria check failed: '
                   'large_scale_power_ratio: {}, wet_ratio: {}'.format(
@@ -132,17 +172,24 @@ if __name__ == '__main__':
         print 'current model variable: {}'.format(cur_model_var)
 
         print '    step 1: load model fcsts to be analyzed'
-        lam_data, _, _ = var_bld_err_processing.obtain_griddata(
-            args.lam_fcst, cur_model_var)
-        glb_data, _, _ = var_bld_err_processing.obtain_griddata(
-            args.glb_fcst, cur_model_var)
+
+        if not test_para:
+            lam_data, _, _ = var_bld_err_processing.obtain_griddata(
+                args.lam_fcst, cur_model_var)
+            glb_data, _, _ = var_bld_err_processing.obtain_griddata(
+                args.glb_fcst, cur_model_var)
+        else:
+            lam_data = cPickle.load(gzip.open(test_para['cur_lam'].format(
+                var=cur_model_var), "rb" ))
+            glb_data = cPickle.load(gzip.open(test_para['cur_glb'].format(
+                var=cur_model_var), "rb" ))
 
         # * load historical power difference and
         #   calculate the current power difference
         # * if the current power difference is smaller than the
         #   smallest historical difference (usually at 12h fcst), that
         #   particular level is not included in the analysis
-        if args.use_wet_power_constrain_from_hist:
+        if args.use_wet_power_constrain_from_hist and (not args.use_fix_wavenumber):
             print '    step 1.1: load historical model power'
             hist_power_diff = var_bld_process.obtain_hist_power_diff(
                 args.work_dir, cur_model_var)
@@ -152,19 +199,26 @@ if __name__ == '__main__':
 
         print '    step 2: load model errors'
         if not args.use_fix_wavenumber:
+            if not args.model_err_dir:
+                model_error_dir = args.work_dir
+            else:
+                model_error_dir = args.model_err_dir
             cur_err_path = os.path.join(
-                args.work_dir, 'model_errs_{}.tar.gz'.format(cur_model_var))
+                model_error_dir, 'model_errs_{}.tar.gz'.format(cur_model_var))
             cur_err = var_bld_process.load_error(cur_err_path)
+
+            print '    step 2.1: obtain model error ratio'
+            glb_model_err_ratio = var_bld_err_processing.obtain_bld_var_err_ratio(
+                    cur_model_var, int(args.total_model_levels), 'glb')
+            lam_model_err_ratio = var_bld_err_processing.obtain_bld_var_err_ratio(
+                    cur_model_var, int(args.total_model_levels), 'lam')
         else:
             cur_err = None
+            print '    step 2.2: obtain model error ratio'
+            glb_model_err_ratio = numpy.ones(int(args.total_model_levels))
+            lam_model_err_ratio = numpy.ones(int(args.total_model_levels))
 
-        print '    step 3: obtain model error ratio'
-        glb_model_err_ratio = var_bld_err_processing.obtain_bld_var_err_ratio(
-                cur_model_var, int(args.total_model_levels), 'glb')
-        lam_model_err_ratio = var_bld_err_processing.obtain_bld_var_err_ratio(
-                cur_model_var, int(args.total_model_levels), 'lam')
-
-        print '    step 4: convert model error from matrix to ' + \
+        print '    step 3: convert model error from matrix to ' + \
               'vector, and calculated model weights'
         model_weights = []
         for lvl in range(0, int(args.total_model_levels)):
@@ -185,13 +239,13 @@ if __name__ == '__main__':
                 model_weights, lvl_glb_fcst_err, lvl_lam_fcst_err)
 
         # smooth vertical errors between LAM and global data
-        if args.smooth_vertical_model_weights:
-            print '    step 5: smoothing the calculated model weights'
+        if args.smooth_vertical_model_weights and (not args.use_fix_wavenumber):
+            print '    step 4: smoothing the calculated model weights'
             model_weights = var_bld_err_processing.smooth_model_weights(
                 model_weights, int(args.total_model_levels),
                 gaussian_sigma=MODEL_WEIGHTS_SMOOTHING_SIGMA)
 
-        print '    step 6: running analysis'
+        print '    step 5: running analysis'
         analysis_minus_lam = []
         analysis_minus_glb = []
         analysis_data_list = []
@@ -208,19 +262,26 @@ if __name__ == '__main__':
                 var_bld_err_processing.matrix2vector(cur_glb_fft_coef))
             cur_model_weight = model_weights[lvl]
 
-            if args.use_wet_power_constrain_from_hist and \
-                    (cur_power_diff[lvl] < hist_power_diff[lvl]):
-                print('    * skipped level {}: cur_power_diff ({}) '
-                      '< hist_power_diff ({})'.format(
-                        lvl, cur_power_diff[lvl], hist_power_diff[lvl]))
-                cur_analysis = cur_lvl_lam_data
-            else:
+            if args.use_fix_wavenumber:
                 cur_analysis_fft_coef = cur_model_weight*(
                     cur_glb_fft_coef_vector - cur_lam_fft_coef_vector) + \
                     cur_lam_fft_coef_vector
-
                 cur_analysis = var_bld_process.freq2grid(
-                    cur_analysis_fft_coef, cur_lvl_lam_data.shape)
+                        cur_analysis_fft_coef, cur_lvl_lam_data.shape)
+            else:
+                if args.use_wet_power_constrain_from_hist and \
+                    (cur_power_diff[lvl] < hist_power_diff[lvl]):
+                    print('    * skipped level {}: cur_power_diff ({}) '
+                          '< hist_power_diff ({})'.format(
+                            lvl, cur_power_diff[lvl], hist_power_diff[lvl]))
+                    cur_analysis = cur_lvl_lam_data
+                else:
+                    cur_analysis_fft_coef = cur_model_weight*(
+                        cur_glb_fft_coef_vector - cur_lam_fft_coef_vector) + \
+                        cur_lam_fft_coef_vector
+                    cur_analysis = var_bld_process.freq2grid(
+                            cur_analysis_fft_coef, cur_lvl_lam_data.shape)
+
             if args.generate_plot:
                 if lvl in PLOT_LEVS:
                     var_bld_process.plot_analyzed_data(
@@ -245,4 +306,7 @@ if __name__ == '__main__':
     var_bld_process.write_netcdf_out(
         'tmp.nc', args.bld_fcst, args.model_var_list, analysis_data)
 
+
+if __name__ == '__main__':
+    run_var_blending()
     print 'done'

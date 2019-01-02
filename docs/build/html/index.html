@@ -1,0 +1,213 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="English">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Welcome to VAR_BLENDING documentation &#8212; var_blending_docs 0.0.1 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/my_theme.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="License" href="license.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             accesskey="N">next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">var_blending_docs 0.0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="welcome-to-var-blending-documentation">
+<h1>Welcome to VAR_BLENDING documentation<a class="headerlink" href="#welcome-to-var-blending-documentation" title="Permalink to this headline">¶</a></h1>
+<a class="reference internal image-reference" href="_images/bld_fcst.png"><img alt="_images/bld_fcst.png" src="_images/bld_fcst.png" style="width: 750px;" /></a>
+<p><strong>VAR_BLENDING</strong> package provides a Variational based method to blend different NWP models (e.g., a global model and a limited area model) on a spectral space.</p>
+<ul class="simple">
+<li>Release: 0.0.1</li>
+<li>Date: 2018-12-28</li>
+</ul>
+<p>This package is developed by New Zealand Meteorological Service, and to work with Amazon Web Service Storage Server S3</p>
+<p>Questions go to: <a class="reference external" href="mailto:sijin&#46;zhang&#37;&#52;&#48;metservice&#46;com">sijin<span>&#46;</span>zhang<span>&#64;</span>metservice<span>&#46;</span>com</a></p>
+<div class="topic">
+<p class="topic-title first">There are a few assumptions of using this method:</p>
+<ul class="simple">
+<li>a global model (e.g., GFS or ECMWF) is able to provide better large scale weather patterns than a limited area model (e.g., high resolution WRF)</li>
+<li>the truth of atmosphere lies between the global model and limited area model</li>
+<li>there are no correlations among the fields to be blended</li>
+<li>a global model and a limited area model contains similar amount of energies for the large scale patterns (e.g., where the wavenumber is bigger than a certain value)</li>
+<li>the imbalances among fields after the blending analysis can be solved by the model itself</li>
+</ul>
+</div>
+<div class="section" id="about-this-software">
+<h2>About this software<a class="headerlink" href="#about-this-software" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="license.html">   license</a></li>
+<li class="toctree-l1"><a class="reference internal" href="help.html">   help</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="methodology">
+<h2>Methodology<a class="headerlink" href="#methodology" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="methods.html">   mathematical ideas</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="sample-workflow">
+<h2>Sample workflow<a class="headerlink" href="#sample-workflow" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="step1.html">   Step 1: preparing model errors</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="step1.html#step-1-1-download-or-prepare-the-model-inputs">STEP 1.1 Download (or prepare) the model inputs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#if-download-model-inputs-from-aws-s3">1.1.1 if download model inputs from AWS S3</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#if-copy-model-inputs-from-somewhere-else">1.1.2 if copy model inputs from somewhere else</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#check-if-all-the-required-data-are-presented">1.1.3 check if all the required data are presented</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="step1.html#step-1-2-determine-the-model-error-estimation-criteria">STEP 1.2 Determine the model error estimation criteria</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#it-would-be-good-if-the-background-does-not-have-significant-large-scale-forcing">1.2.1 It would be good if the background does not have significant large scale forcing:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#it-would-be-good-if-the-background-is-mostly-dry">1.2.2 It would be good if the background is mostly dry:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#determine-if-the-blending-can-be-continued">1.2.3 Determine if the blending can be continued</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="step1.html#step-1-3-extract-the-model-data">STEP 1.3 extract the model data</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#read-global-model-forecasts-and-lam-forecasts">1.3.1 Read global model forecasts and LAM forecasts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#read-global-model-analysis-data">1.3.2 Read global model analysis data</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="step1.html#step-1-4-convert-model-data-using-fft">STEP 1.4 convert model data using FFT</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#convert-2d-grid-data-using-2d-fft">1.4.1 convert 2D grid data using 2D FFT:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#create-the-power-from-the-grid-data">1.4.2 create the power from the grid data:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#return-standard-powers-and-fft-coeffs">1.4.3 return standard powers and FFT coeffs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#create-the-welch-power-vertical-profile-from-the-grid-data">1.4.4 create the Welch power vertical profile from the grid data:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="step1.html#step-1-5-calculate-model-errors">STEP 1.5 calculate model errors</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#step-1-5-1-running-inverse-fft-for-global-lam-forecasts-and-global-analysis-for-all-required-wavenumbers">STEP 1.5.1 Running inverse FFT for global/LAM forecasts and global analysis for all required wavenumbers:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#step-1-5-2-obtain-the-user-defined-error-ratio">STEP 1.5.2 Obtain the user defined error ratio</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#step-1-5-3-obtain-the-model-mean-values-over-levels">STEP 1.5.3 Obtain the model mean values over levels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step1.html#step-1-5-4-obtain-the-model-errors">STEP 1.5.4 Obtain the model errors</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="step2.html">   Step 2: running Variational blending</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="step2.html#step-2-1-determine-the-model-blending-criteria">STEP 2.1 Determine the model blending criteria</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-1-1-obtain-lam-maximum-reflectivity">STEP 2.1.1 obtain LAM maximum reflectivity:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-1-2-obtain-welch-model-power-over-latitudes">STEP 2.1.2 obtain Welch model power over latitudes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-1-3-obtain-the-large-scale-power-ratio-over-the-total-power">STEP 2.1.3 Obtain the large scale power ratio over the total power:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-1-4-obtain-the-wet-ratio-over-lands">STEP 2.1.4 Obtain the wet ratio over lands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-1-5-blending-criteria">STEP 2.1.5 Blending criteria</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="step2.html#step-2-2-load-model-data-the-model-errors-and-auxiliary-files">STEP 2.2 Load model data, the model errors and auxiliary files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-2-1-load-model-forecasts">STEP 2.2.1 Load model forecasts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-2-2-compare-the-current-and-historical-power-differences-between-lam-and-global-models">STEP 2.2.2 Compare the current and historical power differences between LAM and global models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-2-3-load-model-errors">STEP 2.2.3 Load model errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-2-4-load-user-defined-error-ratio-profile-and-update-model-errors">STEP 2.2.4 Load user defined error ratio profile and update model errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-2-5-convert-model-errors-from-an-array-to-a-matrix">STEP 2.2.5 convert model errors from an array to a matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-2-6-create-the-final-error-matrix">STEP 2.2.6 create the final error matrix:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="step2.html#step-2-3-best-linear-unbiased-estimator">STEP 2.3 Best Linear Unbiased Estimator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-3-1-obtain-the-model-error-coefficient">STEP 2.3.1 Obtain the model error coefficient</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-3-2-smooth-the-model-error-coefficient-over-levels">STEP 2.3.2 Smooth the model error coefficient over levels:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="step2.html#step-2-4-running-analysis">STEP 2.4 Running analysis</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-4-1-obtain-the-current-fft-of-lam-and-global-forecasts-level-by-level">STEP 2.4.1 obtain the current FFT of LAM and global forecasts level by level:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-4-2-running-analysis">STEP 2.4.2 running analysis:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="step2.html#step-2-4-3-difference-between-wrf-gfs-and-the-blended-analysis">STEP 2.4.3 Difference between WRF, GFS and the blended analysis</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Welcome to VAR_BLENDING documentation</a><ul>
+<li><a class="reference internal" href="#about-this-software">About this software</a></li>
+<li><a class="reference internal" href="#methodology">Methodology</a></li>
+<li><a class="reference internal" href="#sample-workflow">Sample workflow</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Next topic</h4>
+  <p class="topless"><a href="license.html"
+                        title="next chapter">License</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             >next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">var_blending_docs 0.0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, sijin.zhang.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.3.
+    </div>
+  </body>
+</html>
